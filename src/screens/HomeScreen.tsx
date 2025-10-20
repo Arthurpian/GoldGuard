@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Alert } from "react-native"; 
 import { useFocusEffect } from '@react-navigation/native';
-import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore'; 
 import { auth, db } from '../firebase/firebaseConnection';
 import { Colors } from "../theme/colors";
-
+import { Ionicons } from "@expo/vector-icons"; 
 interface Transacao {
   id: string;
   nomeCasa: string;
@@ -69,6 +69,36 @@ export default function HomeScreen({ navigation }: any) {
     }, [loadData])
   );
 
+  const handleDeleteTransaction = async (transactionId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    Alert.alert(
+      "Confirmar Exclusão",
+      "Você tem certeza que deseja apagar esta transação? Esta ação não pode ser desfeita.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        { 
+          text: "Apagar", 
+          onPress: async () => {
+            try {
+              const transactionDocRef = doc(db, "users", user.uid, "transactions", transactionId);
+              await deleteDoc(transactionDocRef);
+              loadData(); 
+            } catch (error) {
+              console.error("Erro ao deletar transação:", error);
+              Alert.alert("Erro", "Não foi possível apagar a transação.");
+            }
+          },
+          style: "destructive" 
+        }
+      ]
+    );
+  };
+  
   const handleLogout = async () => {
     await auth.signOut();
   };
@@ -117,14 +147,21 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.noTransactionsText}>Nenhuma transação registrada.</Text>
         ) : (
           transacoes.map((item) => (
+    
             <View key={item.id} style={styles.transactionItem}>
-              <Text style={styles.transactionText}>{item.nomeCasa}</Text>
-              <Text style={[
-                styles.transactionValue,
-                item.tipoTransacao === 'deposito' ? styles.depositoText : styles.saqueText
-              ]}>
-                {item.tipoTransacao === 'deposito' ? '-' : '+'} {formatCurrency(item.valor)}
-              </Text>
+              <View style={styles.transactionDetails}>
+                <Text style={styles.transactionText}>{item.nomeCasa}</Text>
+                <Text style={[
+                  styles.transactionValue,
+                  item.tipoTransacao === 'deposito' ? styles.depositoText : styles.saqueText
+                ]}>
+                  {item.tipoTransacao === 'deposito' ? '-' : '+'} {formatCurrency(item.valor)}
+                </Text>
+              </View>
+
+              <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={styles.deleteButton}>
+                <Ionicons name="trash-outline" size={24} color="red" />
+              </TouchableOpacity>
             </View>
           ))
         )}
@@ -133,7 +170,7 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-// Seus estilos originais da HomeScreen, com uma pequena correção no botão de sair
+// **** ADIÇÃO DE NOVOS ESTILOS ****
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
@@ -142,7 +179,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   ola: { 
-    flexDirection: 'row', // Adicionado para alinhar lado a lado
+    flexDirection: 'row',
     width: '90%',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -156,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
-  botaoSair: { // Renomeado para não conflitar
+  botaoSair: {
     backgroundColor: "red", 
     padding: 10, 
     borderRadius: 8, 
@@ -171,8 +208,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.luxuryGold,
     borderRadius: 8,
     width: "90%",
-    padding: 20, // Padding para espaçamento interno
-    marginBottom: 20, // Aumentado o espaçamento
+    padding: 20,
+    marginBottom: 20,
   },
   resumoTitulo: {
     fontSize: 20,
@@ -197,9 +234,6 @@ const styles = StyleSheet.create({
   view03: {
     width: '90%',
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 10,
   },
   view03Content: {
     paddingBottom: 20,
@@ -212,15 +246,19 @@ const styles = StyleSheet.create({
   },
   transactionItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', 
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     backgroundColor: '#fff',
-    borderRadius: 5,
-    marginBottom: 5,
+    borderRadius: 8,
+    marginBottom: 8, 
+  },
+  
+  transactionDetails: {
+    flex: 1, 
   },
   transactionText: {
     fontSize: 16,
@@ -236,5 +274,10 @@ const styles = StyleSheet.create({
   },
   saqueText: {
     color: 'green',
+  },
+  
+  deleteButton: {
+    padding: 5, 
+    marginLeft: 10, 
   },
 });

@@ -87,7 +87,6 @@ export default function AdicionarTransacaoScreen({ navigation }: any) {
   );
 }
 
-// Seus estilos originais de AdicionarTransacaoScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,

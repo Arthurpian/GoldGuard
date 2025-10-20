@@ -12,7 +12,7 @@ export default function AjudaScreen() {
       <Text style={styles.tituloPrincipal}>Os Riscos das Apostas Esportivas</Text>
       <Text style={styles.subtitulo}>Informação e Conscientização</Text>
 
-      {/* Matéria 1 */}
+
       <View style={styles.cardMateria}>
         <Text style={styles.tituloMateria}>O Lado Sombrio das Apostas Online: Entenda os Perigos</Text>
         <Text style={styles.paragrafo}>
@@ -21,7 +21,7 @@ export default function AjudaScreen() {
         <TouchableOpacity 
           style={styles.linkButton} 
           onPress={() => openLink('https://pp.nexojornal.com.br/perguntas-que-a-ciencia-ja-respondeu/2024/10/29/o-vicio-em-apostas-sinais-consequencias-tratamentos-e-recomendacoes-em-9-pontos')} 
-          // Substitua por um link real de uma matéria se tiver um
+
         >
           <Text style={styles.linkButtonText}>Leia mais sobre os perigos</Text>
         </TouchableOpacity>
@@ -40,11 +40,11 @@ export default function AjudaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5', // Um fundo claro
+    backgroundColor: '#f5f5f5', 
   },
   contentContainer: {
     padding: 20,
-    paddingTop: 50, // Ajuste para não colar na barra de status
+    paddingTop: 50, 
     alignItems: 'center',
   },
   tituloPrincipal: {
@@ -66,18 +66,17 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 25,
     width: '100%',
-    maxWidth: 600, // Limita a largura em telas maiores
+    maxWidth: 600, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Sombra para Android
+    elevation: 3,
   },
   tituloMateria: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.deepBlue, // Usando uma cor da sua paleta
-    marginBottom: 15,
+    color: Colors.deepBlue, 
   },
   paragrafo: {
     fontSize: 16,
@@ -94,7 +93,7 @@ const styles = StyleSheet.create({
   },
   linkButton: {
     marginTop: 15,
-    backgroundColor: Colors.luxuryGold, // Outra cor da sua paleta
+    backgroundColor: Colors.luxuryGold, 
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -107,7 +106,7 @@ const styles = StyleSheet.create({
   disclaimer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#fff3cd', // Um amarelo claro para aviso
+    backgroundColor: '#fff3cd', 
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ffeeba',

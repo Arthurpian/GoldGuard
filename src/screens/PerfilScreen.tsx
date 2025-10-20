@@ -159,7 +159,6 @@ export default function PerfilScreen({ navigation }: any) {
   );
 }
 
-// Seus estilos originais de PerfilScreen
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,

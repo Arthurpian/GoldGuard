@@ -20,7 +20,6 @@ import AdicionarTransacao from "../screens/AdicionarTransacao";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tabs do app (Home, Ajuda, Perfil)
 function TabRoutes() {
   return (
     <Tab.Navigator screenOptions={({ route  }) => ({
