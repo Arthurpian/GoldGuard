@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, Text } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase/firebaseConnection';
 
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 
+// Importe suas telas
 import LoginScreen from "../screens/LoginScreen";
+import RegisterScreen from "../screens/RegisterScreen";
 import HomeScreen from "../screens/HomeScreen";
 import AjudaScreen from "../screens/AjudaScreen";
 import PerfilScreen from "../screens/PerfilScreen";
-import AdicionarTransacaoScreen from "../screens/AdicionarTransacao"
+import AdicionarTransacao from "../screens/AdicionarTransacao";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -47,7 +50,6 @@ function TabRoutes() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Ajuda" component={AjudaScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
-      
     </Tab.Navigator>
   );
 }
@@ -57,27 +59,34 @@ export default function AppNavigator() {
   const [logado, setLogado] = useState(false);
 
   useEffect(() => {
-    const verificarLogin = async () => {
-      const user = await AsyncStorage.getItem("usuario");
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setLogado(!!user);
       setLoading(false);
-    };
-    verificarLogin();
+    });
+    return () => unsubscribe();
   }, []);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Carregando...</Text>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.richBlack }}>
+        <ActivityIndicator size="large" color={Colors.luxuryGold} />
       </View>
     );
   }
 
   return (
-  <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={logado ? "App" : "Login"}>
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="App" component={TabRoutes} />
-    <Stack.Screen name="AdicionarTransacao" component={AdicionarTransacaoScreen} options={{ title: 'Nova Transação' }} />
-  </Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {logado ? (
+        <>
+          <Stack.Screen name="App" component={TabRoutes} />
+          <Stack.Screen name="AdicionarTransacao" component={AdicionarTransacao} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      )}
+    </Stack.Navigator>
   );
 }

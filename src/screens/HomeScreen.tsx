@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react"; // Adicione useCallback
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from "react-native"; // Adicione ScrollView e RefreshControl
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
+import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { auth, db } from '../firebase/firebaseConnection';
 import { Colors } from "../theme/colors";
 
-// Defina uma interface para a transação para melhor tipagem (se estiver usando TypeScript)
 interface Transacao {
   id: string;
   nomeCasa: string;
@@ -13,69 +14,69 @@ interface Transacao {
 }
 
 export default function HomeScreen({ navigation }: any) {
-  const [user, setUser] = useState("");
   const [profileName, setProfileName] = useState("");
   const [totalGeral, setTotalGeral] = useState(0);
   const [totalSaques, setTotalSaques] = useState(0);
   const [totalDepositos, setTotalDepositos] = useState(0);
-  const [transacoes, setTransacoes] = useState<Transacao[]>([]); // Estado para as transações
-  const [refreshing, setRefreshing] = useState(false); // Estado para o Pull-to-Refresh
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Função para carregar todos os dados (usuário, totais, transações)
   const loadData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     setRefreshing(true);
     try {
-      const savedUser = await AsyncStorage.getItem("usuario");
-      if (savedUser) setUser(savedUser);
-
-      const savedProfileName = await AsyncStorage.getItem("userNome"); // <-- Carrega o nome do perfil
-      if (savedProfileName) {
-        setProfileName(savedProfileName);
-      } else if (savedUser) {
-        setProfileName(savedUser); // Se não houver nome no perfil, usa o nome do login
-      } else {
-        setProfileName('Visitante'); // Se não tiver nenhum, use um padrão
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setProfileName(userDoc.data().nome || user.email);
       }
 
-      const savedTotalGeral = await AsyncStorage.getItem("totalGeral");
-      setTotalGeral(parseFloat(savedTotalGeral || '0'));
+      const transacoesRef = collection(db, "users", user.uid, "transactions");
+      const q = query(transacoesRef, orderBy("data", "desc"));
+      const querySnapshot = await getDocs(q);
+      
+      let depositos = 0;
+      let saques = 0;
+      const transacoesList: Transacao[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as Omit<Transacao, 'id'>;
+        transacoesList.push({ id: doc.id, ...data });
 
-      const savedTotalSaques = await AsyncStorage.getItem("totalSaques");
-      setTotalSaques(parseFloat(savedTotalSaques || '0'));
+        if (data.tipoTransacao === 'deposito') {
+          depositos += data.valor;
+        } else {
+          saques += data.valor;
+        }
+      });
+      
+      setTransacoes(transacoesList);
+      setTotalDepositos(depositos);
+      setTotalSaques(saques);
+      setTotalGeral(saques - depositos);
 
-      const savedTotalDepositos = await AsyncStorage.getItem("totalDepositos");
-      setTotalDepositos(parseFloat(savedTotalDepositos || '0'));
-  
-      const savedTransacoes = await AsyncStorage.getItem("transacoes");
-      setTransacoes(savedTransacoes ? JSON.parse(savedTransacoes) : []);
-
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      } finally {
-        setRefreshing(false);
-      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do Firestore:", error);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
-  useEffect(() => {
-    loadData();
-
-    // Adiciona um listener para recarregar a tela sempre que ela for focada
-    const unsubscribe = navigation.addListener('focus', () => {
+  useFocusEffect(
+    useCallback(() => {
       loadData();
-    });
-
-    return unsubscribe; // Limpa o listener ao desmontar
-  }, [navigation, loadData]); // Dependências do useEffect
+    }, [loadData])
+  );
 
   const handleLogout = async () => {
-    navigation.replace("Login");
+    await auth.signOut();
   };
-
+  
   const adicionar = () => {
-    navigation.navigate('AdicionarTransacao'); // Navega para a tela de adicionar transação
+    navigation.navigate('AdicionarTransacao');
   }
 
-  // Função auxiliar para formatar valores monetários
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -87,12 +88,11 @@ export default function HomeScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.ola}>
         <Text style={styles.titulo}>Bem-vindo, {profileName} 👋</Text>
-        <TouchableOpacity style={styles.botao} onPress={handleLogout}>
+        <TouchableOpacity style={styles.botaoSair} onPress={handleLogout}>
           <Text style={styles.botaoTexto}>Sair</Text>
         </TouchableOpacity>
       </View>
 
-      // Na HomeScreen, dentro da view01
       <View style={styles.view01}>
         <Text style={styles.resumoTitulo}>Total: {formatCurrency(totalGeral)}</Text>
         <Text style={styles.resumoTitulo}>Depósitos: {formatCurrency(totalDepositos)}</Text>
@@ -100,24 +100,23 @@ export default function HomeScreen({ navigation }: any) {
       </View>
 
       <View style={styles.view02}>
-        <Text style={styles.tituloExtrato}>Extrato</Text> {/* Mudei o nome do estilo para evitar conflito de tamanho */}
+        <Text style={styles.tituloExtrato}>Extrato</Text>
         <TouchableOpacity style={styles.Add} onPress={adicionar}>
           <Text style={styles.botaoTexto}>+</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Nova View para o histórico de transações - view03 */}
       <ScrollView 
         style={styles.view03}
-        contentContainerStyle={styles.view03Content} // Estilo para o conteúdo dentro do ScrollView
-        refreshControl={ // Adiciona funcionalidade de Pull-to-Refresh
-          <RefreshControl refreshing={refreshing} onRefresh={loadData} />
+        contentContainerStyle={styles.view03Content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={loadData} colors={[Colors.luxuryGold]} tintColor={Colors.luxuryGold} />
         }
       >
         {transacoes.length === 0 ? (
-          <Text style={styles.noTransactionsText}>Nenhuma transação registrada ainda.</Text>
+          <Text style={styles.noTransactionsText}>Nenhuma transação registrada.</Text>
         ) : (
-          [...transacoes].reverse().map((item) => ( // Inverte a ordem para mostrar as mais recentes primeiro
+          transacoes.map((item) => (
             <View key={item.id} style={styles.transactionItem}>
               <Text style={styles.transactionText}>{item.nomeCasa}</Text>
               <Text style={[
@@ -134,82 +133,76 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
+// Seus estilos originais da HomeScreen, com uma pequena correção no botão de sair
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     alignItems: "center", 
     justifyContent: "flex-start", 
-    marginTop: 50, // Ajustei a margem superior
+    marginTop: 50,
   },
   ola: { 
-    width: '90%', // Para alinhar com os outros cards
-    justifyContent: 'space-between', // Para empurrar o botão para a direita
+    flexDirection: 'row', // Adicionado para alinhar lado a lado
+    width: '90%',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    paddingHorizontal: 5, // Pequeno padding para não colar nas bordas
-    paddingTop: 10,
   },
   titulo: { 
     fontSize: 24,
-    fontWeight: 'bold', // Para destacar o nome do usuário
+    fontWeight: 'bold',
   },
-  tituloExtrato: { // Novo estilo para o título do extrato
+  tituloExtrato: {
     fontSize: 24,
     fontWeight: 'bold',
   },
-  botao: { 
+  botaoSair: { // Renomeado para não conflitar
     backgroundColor: "red", 
     padding: 10, 
     borderRadius: 8, 
-    margin: 10,
   },
   botaoTexto: { 
     color: "#fff", 
     fontWeight: "bold", 
-    fontSize: 16, // Aumentei um pouco a fonte
+    fontSize: 16,
   },
   view01: { 
-    alignItems: "baseline", 
     justifyContent: "center",
     backgroundColor: Colors.luxuryGold,
     borderRadius: 8,
     width: "90%",
-    height: 150,
-    marginBottom: 10, // Espaçamento entre os cards
-    paddingLeft: 19, // Ajuste para o texto
+    padding: 20, // Padding para espaçamento interno
+    marginBottom: 20, // Aumentado o espaçamento
   },
   resumoTitulo: {
-    fontSize: 20, // Ajustei o tamanho da fonte
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 5, // Espaçamento entre as linhas
+    marginBottom: 8,
   },
   view02: { 
     width: '90%', 
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 5,
-    marginBottom: 10, // Espaçamento entre o título do extrato e a lista
+    marginBottom: 10,
   },
   Add: {
     backgroundColor: Colors.deepBlue, 
-    padding: 10,
     borderRadius: 50,
-    width: 45, // Defini largura e altura para ser um círculo perfeito
+    width: 45,
     height: 45,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Estilos para a nova view03 e itens de transação
   view03: {
     width: '90%',
-    flex: 1, // Para ocupar o restante do espaço disponível
-    backgroundColor: '#f0f0f0', // Cor de fundo para o histórico
+    flex: 1,
+    backgroundColor: '#f0f0f0',
     borderRadius: 8,
     padding: 10,
   },
   view03Content: {
-    paddingBottom: 20, // Espaço no final da lista
+    paddingBottom: 20,
   },
   noTransactionsText: {
     textAlign: 'center',
@@ -239,9 +232,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   depositoText: {
-    color: 'red', // Verde para depósito
+    color: 'red',
   },
   saqueText: {
-    color: 'green', // Vermelho para saque
+    color: 'green',
   },
 });

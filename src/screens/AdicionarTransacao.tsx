@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../theme/colors'; // Certifique-se de que o caminho está correto
+import { collection, addDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/firebaseConnection';
+import { Colors } from '../theme/colors';
 
 export default function AdicionarTransacaoScreen({ navigation }: any) {
   const [nomeCasa, setNomeCasa] = useState('');
@@ -9,53 +10,35 @@ export default function AdicionarTransacaoScreen({ navigation }: any) {
   const [valor, setValor] = useState('');
 
   const handleSalvarTransacao = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Erro', 'Você precisa estar logado para adicionar uma transação.');
+      return;
+    }
+
     if (!nomeCasa || !tipoTransacao || !valor) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
 
-    const valorNumerico = parseFloat(valor.replace(',', '.')); // Garante que é um número e aceita vírgula
+    const valorNumerico = parseFloat(valor.replace(',', '.'));
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
-      Alert.alert('Erro', 'Por favor, insira um valor numérico válido maior que zero.');
+      Alert.alert('Erro', 'Por favor, insira um valor numérico válido.');
       return;
     }
 
-    const novaTransacao = {
-      id: Date.now().toString(), // Um ID único baseado no timestamp
-      nomeCasa,
-      tipoTransacao,
-      valor: valorNumerico,
-      data: new Date().toISOString(), // Salva a data e hora da transação
-    };
-
     try {
-      // 1. Carregar transações existentes
-      const transacoesSalvas = await AsyncStorage.getItem('transacoes');
-      const transacoes = transacoesSalvas ? JSON.parse(transacoesSalvas) : [];
+      const userTransactionsRef = collection(db, "users", user.uid, "transactions");
 
-      // 2. Adicionar a nova transação
-      transacoes.push(novaTransacao);
-      await AsyncStorage.setItem('transacoes', JSON.stringify(transacoes));
-
-      // 3. Atualizar os totais
-      let totalGeral = parseFloat(await AsyncStorage.getItem('totalGeral') || '0');
-      let totalSaques = parseFloat(await AsyncStorage.getItem('totalSaques') || '0');
-      let totalDepositos = parseFloat(await AsyncStorage.getItem('totalDepositos') || '0');
-
-      if (tipoTransacao === 'deposito') {
-        totalGeral -= valorNumerico;
-        totalDepositos += valorNumerico;
-      } else { // saque
-        totalGeral += valorNumerico;
-        totalSaques += valorNumerico;
-      }
-
-      await AsyncStorage.setItem('totalGeral', totalGeral.toString());
-      await AsyncStorage.setItem('totalSaques', totalSaques.toString());
-      await AsyncStorage.setItem('totalDepositos', totalDepositos.toString());
+      await addDoc(userTransactionsRef, {
+        nomeCasa,
+        tipoTransacao,
+        valor: valorNumerico,
+        data: new Date().toISOString(),
+      });
 
       Alert.alert('Sucesso', 'Transação salva com sucesso!');
-      navigation.goBack(); // Volta para a tela anterior (HomeScreen)
+      navigation.goBack();
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
       Alert.alert('Erro', 'Não foi possível salvar a transação.');
@@ -91,8 +74,8 @@ export default function AdicionarTransacaoScreen({ navigation }: any) {
 
       <TextInput
         style={styles.input}
-        placeholder="Valor (ex: 100.50)"
-        keyboardType="numeric" // Garante que o teclado numérico seja exibido
+        placeholder="Valor (ex: 100,50)"
+        keyboardType="numeric"
         value={valor}
         onChangeText={setValor}
       />
@@ -104,6 +87,7 @@ export default function AdicionarTransacaoScreen({ navigation }: any) {
   );
 }
 
+// Seus estilos originais de AdicionarTransacaoScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -141,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioButtonSelected: {
-    backgroundColor: Colors.deepBlue, // Ou outra cor de sua preferência
+    backgroundColor: Colors.deepBlue,
     borderColor: Colors.deepBlue,
   },
   radioText: {
@@ -153,7 +137,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   botaoSalvar: {
-    backgroundColor: Colors.deepBlue, // Use uma cor de sua paleta
+    backgroundColor: Colors.deepBlue,
     padding: 18,
     borderRadius: 10,
     width: '90%',

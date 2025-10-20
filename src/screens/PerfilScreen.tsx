@@ -1,55 +1,54 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Alert, Modal, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../theme/colors'; // Ajuste o caminho conforme necessário
-// Defina seus avatares. Os nomes dos arquivos precisam corresponder aos seus assets.
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase/firebaseConnection';
+import { Colors } from '../theme/colors';
+
 const avatars = [
-  require('../assets/images/avatar/aguia.png'), // Ajuste o caminho se necessário
+  require('../assets/images/avatar/aguia.png'),
   require('../assets/images/avatar/dragao.png'),
   require('../assets/images/avatar/leao.png'),
   require('../assets/images/avatar/macaco.png'),
   require('../assets/images/avatar/pombo.png')
-  // Adicione mais avatares conforme tiver na sua pasta
 ];
-// Avatar padrão caso nada seja selecionado ou carregado
 const defaultAvatar = require('../assets/images/avatar/dragao.png');
+
 export default function PerfilScreen({ navigation }: any) {
   const [nome, setNome] = useState('');
   const [idade, setIdade] = useState('');
-  const [email, setEmail] = useState(''); // Para exibir o e-mail do usuário
-  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null); // Índice do avatar selecionado
-  const [modalVisible, setModalVisible] = useState(false); // Para controlar a visibilidade do modal
+  const [email, setEmail] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const loadProfileData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     try {
-      const savedName = await AsyncStorage.getItem('userNome');
-      if (savedName) setNome(savedName);
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
 
-      const savedIdade = await AsyncStorage.getItem('userIdade');
-      if (savedIdade) setIdade(savedIdade);
-
-      const savedEmail = await AsyncStorage.getItem('usuario'); // Assumindo que você salva o email no login
-      if (savedEmail) setEmail(savedEmail);
-
-      const savedAvatarIndex = await AsyncStorage.getItem('userAvatarIndex');
-      if (savedAvatarIndex !== null) {
-        setSelectedAvatar(parseInt(savedAvatarIndex, 10));
-      } else {
-        setSelectedAvatar(null); // Nenhuma seleção anterior, usa o padrão
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setNome(data.nome || '');
+        setIdade(data.idade || '');
+        setEmail(data.email || '');
+        setSelectedAvatar(data.avatarIndex !== undefined && data.avatarIndex !== null ? data.avatarIndex : null);
       }
-
     } catch (error) {
       console.error("Erro ao carregar dados do perfil:", error);
     }
   }, []);
 
   useEffect(() => {
-    loadProfileData();
     const unsubscribe = navigation.addListener('focus', loadProfileData);
     return unsubscribe;
   }, [navigation, loadProfileData]);
 
   const handleSalvarPerfil = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     if (!nome) {
       Alert.alert('Erro', 'O nome não pode estar vazio.');
       return;
@@ -60,15 +59,14 @@ export default function PerfilScreen({ navigation }: any) {
     }
 
     try {
-      await AsyncStorage.setItem('userNome', nome);
-      await AsyncStorage.setItem('userIdade', idade);
-      if (selectedAvatar !== null) {
-        await AsyncStorage.setItem('userAvatarIndex', selectedAvatar.toString());
-      } else {
-        await AsyncStorage.removeItem('userAvatarIndex'); // Remove se não houver avatar selecionado
-      }
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        nome: nome,
+        idade: idade,
+        avatarIndex: selectedAvatar,
+      });
       
-      Alert.alert('Sucesso', 'Dados do perfil salvos com sucesso!');
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (error) {
       console.error("Erro ao salvar perfil:", error);
       Alert.alert('Erro', 'Não foi possível salvar o perfil.');
@@ -123,7 +121,6 @@ export default function PerfilScreen({ navigation }: any) {
           <Text style={styles.botaoTexto}>Salvar Perfil</Text>
         </TouchableOpacity>
 
-        {/* Modal para seleção de avatar */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -143,7 +140,7 @@ export default function PerfilScreen({ navigation }: any) {
                     ]}
                     onPress={() => {
                       setSelectedAvatar(index);
-                      setModalVisible(false); // Fecha o modal após selecionar
+                      setModalVisible(false);
                     }}
                   >
                     <Image source={avatarSource} style={styles.avatarOptionImage} />
@@ -162,9 +159,10 @@ export default function PerfilScreen({ navigation }: any) {
   );
 }
 
+// Seus estilos originais de PerfilScreen
 const styles = StyleSheet.create({
   scrollContent: {
-    flexGrow: 1, // Permite que a ScrollView cresça
+    flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingVertical: 30, 
@@ -200,7 +198,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textAlign: 'center', 
   },
-
   inputGroup: {
     width: '90%',
     marginBottom: 20,
@@ -224,7 +221,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 15,
     borderWidth: 1,
-    borderColor: '#eee', // Um pouco mais claro para indicar que não é editável
+    borderColor: '#eee',
     borderRadius: 8,
     fontSize: 18,
     backgroundColor: '#f9f9f9',
@@ -243,12 +240,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  // Estilos do Modal
   modalBackground: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escurecido
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
     width: '90%',
@@ -270,7 +266,7 @@ const styles = StyleSheet.create({
   },
   avatarGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap', // Permite que os avatares quebrem linha
+    flexWrap: 'wrap',
     justifyContent: 'center',
     marginBottom: 20,
   },
@@ -281,7 +277,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   avatarOptionSelected: {
-    borderColor: Colors.deepBlue, // Borda destacada para o selecionado
+    borderColor: Colors.deepBlue,
   },
   avatarOptionImage: {
     width: 80,
