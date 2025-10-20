@@ -1,42 +1,73 @@
-# 📱 Gerenciador de Apostas Esportivas
+# 📱 Gerenciador de Apostas Esportivas (Global Solution)
 
-Este é um aplicativo móvel desenvolvido em React Native para ajudar você a gerenciar suas apostas esportivas de forma organizada, acompanhar seus ganhos/perdas e conscientizar sobre os riscos envolvidos.
-
-## ✨ Funcionalidades Principais
-
-O aplicativo oferece um conjunto robusto de funcionalidades para uma experiência completa:
-
-* **Autenticação Segura**:
-    * **Tela de Login**: Acesse o aplicativo com suas credenciais.
-* **Gestão de Transações**:
-    * **Adicionar Transação**: Registre depósitos e saques de suas casas de aposta, especificando o nome da casa, tipo (saque/depósito) e valor.
-    * **Histórico de Transações**: Visualize todas as suas movimentações de forma clara, com indicação visual (vermelho para depósito, verde para saque) e ordenado pelas mais recentes.
-* **Resumo Financeiro**:
-    * **Visão Geral**: Acompanhe o seu saldo total, o total de depósitos realizados e o total de saques efetuados em um resumo intuitivo na tela inicial.
-* **Perfis Personalizáveis**:
-    * **Edição de Perfil**: Personalize seu perfil com seu nome, idade e escolha um avatar de uma galeria pré-definida.
-    * **Exibição de Dados**: Visualize seu e-mail de cadastro e as informações do perfil na tela dedicada.
-* **Conscientização sobre Riscos**:
-    * **Educação sobre o Jogo**: Acesse uma seção informativa com matérias e artigos que abordam os perigos e malefícios das apostas esportivas, com links para mais informações e recursos de ajuda.
-
-## 🚀 Como Acessar o Aplicativo
-
-Para acessar as funcionalidades completas do aplicativo, você precisará realizar um login.
-
-### Credenciais de Teste
-
-Para facilitar o acesso rápido e o teste das funcionalidades:
-
-* **Usuário (E-mail):** `teste@email.com`
-* **Senha:** `1234`
-
-Após o login, você será direcionado à `HomeScreen` (tela inicial).
+Este é um aplicativo móvel desenvolvido em React Native como parte da Global Solution de "Mobile Development and IoT". O objetivo é ajudar o usuário a gerenciar suas transações em apostas esportivas, utilizando o **Firebase** como backend para armazenamento e autenticação de dados em tempo real.
 
 ## 🧑‍💻 Integrantes do Projeto
-
-Este projeto foi desenvolvido com a colaboração dos seguintes membros:
 
 * **Márcio Gastaldi** - RM98811
 * **Arthur Bessa Pian** - RM99215
 * **Davi Desenzi** - RM550849
 * **João Victor** - RM551410
+
+## ✨ Funcionalidades
+
+O aplicativo oferece um conjunto robusto de funcionalidades com um ciclo CRUD completo:
+
+### 🔐 Autenticação com Firebase
+* **Cadastro de Novos Usuários**: Tela para criação de contas pessoais com nome, e-mail e senha.
+* **Login Seguro**: Autenticação de usuários já cadastrados para acesso à plataforma.
+* **Sessão Persistente**: O usuário permanece logado mesmo após fechar e reabrir o aplicativo.
+* **Logout**: Função para encerrar a sessão do usuário de forma segura.
+
+### 💸 CRUD de Transações no Firestore
+* **(C)reate - Adicionar Transação**: Registro de depósitos e saques, especificando o nome da casa de aposta e o valor.
+* **(R)ead - Histórico de Transações**: Visualização do extrato completo, ordenado pelas transações mais recentes.
+* **(U)pdate - (Indireto)**: O resumo financeiro é atualizado em tempo real a cada nova transação.
+* **(D)elete - Excluir Transação**: O usuário pode apagar transações indesejadas com um toque, mediante confirmação.
+
+### 📊 Resumo Financeiro
+* **Dashboard Intuitivo**: A tela inicial exibe um resumo com o saldo total (saques - depósitos), o total de depósitos e o total de saques.
+
+### 👤 Perfis Personalizáveis no Firestore
+* **(R)ead - Visualização de Dados**: A tela de Perfil exibe os dados do usuário logado (nome, idade, e-mail).
+* **(U)pdate - Edição de Perfil**: O usuário pode editar seu nome, idade e escolher um avatar, com as alterações salvas em tempo real no Firestore.
+
+### 💡 Conscientização sobre Riscos
+* Acesse uma seção informativa com materiais que abordam os perigos e malefícios das apostas esportivas.
+
+## 🛠️ Tecnologias Utilizadas
+
+* **React Native** com **Expo**
+* **TypeScript**
+* **Firebase Authentication** para gerenciamento de usuários.
+* **Firebase Firestore** como banco de dados NoSQL em tempo real.
+* **React Navigation** para a navegação entre telas.
+
+## 🚀 Como Rodar o Projeto
+
+### Pré-requisitos
+* Node.js (LTS)
+* NPM ou Yarn
+* Expo Go (aplicativo no seu celular Android ou iOS)
+
+### Passo a passo
+1.  Clone o repositório para sua máquina local:
+    ```bash
+    git clone <URL_DO_SEU_REPOSITORIO_AQUI>
+    ```
+2.  Navegue até a pasta do projeto:
+    ```bash
+    cd <NOME_DA_PASTA_DO_PROJETO>
+    ```
+3.  Instale todas as dependências:
+    ```bash
+    npm install
+    ```
+4.  Inicie o servidor de desenvolvimento do Expo:
+    ```bash
+    expo start
+    ```
+5.  Escaneie o QR Code gerado no terminal com o aplicativo Expo Go no seu celular.
+
+### Como usar o aplicativo
+Ao iniciar o app, você estará na tela de Login. Como não há mais usuários de teste, clique em **"Não tem uma conta? Cadastre-se"** para criar seu próprio usuário e começar a usar o aplicativo.
